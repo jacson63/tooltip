@@ -1,3 +1,7 @@
+#objdump -dの結果から、tab区切りのツリー表示をする
+#
+#filePath:objdump -dの結果ファイル
+#
 Param(
     [parameter(mandatory=$true)]
     [String]
@@ -5,7 +9,8 @@ Param(
 )
 
 Set-Variable -Name KEY_REG -value ">:" -Option Constant
-Set-Variable -Name CALL_FUNC -value "call[ ]+([0-9]+ [\S]+)" -Option Constant
+Set-Variable -Name CALL_FUNC -value "call[ ]+([\S\s]+)" -Option Constant
+Set-Variable -Name HIERARCHY_STR -value "`t" -Option Constant
 
 #map<key, list<String>>
 $stack  = New-Object System.Collections.Specialized.OrderedDictionary
@@ -15,7 +20,7 @@ function addStack([System.Collections.Specialized.OrderedDictionary]$o_stack, [S
     if ($o_stack.Contains($i_stack_key)) {
         $local:valueArr = $o_stack[$i_stack_key]
     } else {
-        $local:valueArr = [Collections.ArrayList]::new()
+        $local:valueArr = New-Object Collections.ArrayList
     }
 
     # i_value_key(callのアドレスには先頭0がないので追加)
@@ -27,20 +32,18 @@ function filereadToStack([String]$i_file) {
     # objdumpファイルの読み込み→配列展開
     $key = ""
     Get-Content $i_file | Select-String -Pattern $KEY_REG,$CALL_FUNC | ForEach-Object {
-        $reged = [regex]::Match($_.ToString(), $CALL_FUNC)
         if ($_.ToString().Contains($KEY_REG)) {
             #最後のセミコロン消す
             $key = $_.ToString().Substring(0, $_.ToString().Length - 1)
-        } elseif($reged | Select-Object -ExpandProperty Success){
-            $value = $reged.captures.groups[1].Value
-            addStack $stack $key $value
+        } elseif($_.ToString() -match $CALL_FUNC){
+            addStack $stack $key $Matches[1]
         }
     }
 }
 
 function printStack([Collections.ArrayList]$list, [Int]$hierarchy) {
     $list | ForEach-Object {
-        (" " * $hierarchy ) + $_
+        ($HIERARCHY_STR * $hierarchy ) + $_
         if ( $stack.Contains($_) ) {
             printStack $stack[$_] ($hierarchy + 1)
         }
