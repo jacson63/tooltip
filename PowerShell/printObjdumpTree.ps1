@@ -13,10 +13,10 @@ Set-Variable -Name CALL_FUNC -value "call[ ]+([\S\s]+)" -Option Constant
 Set-Variable -Name HIERARCHY_STR -value "`t" -Option Constant
 
 #map<key, list<String>>
-$stack  = New-Object System.Collections.Specialized.OrderedDictionary
+$dic  = New-Object System.Collections.Specialized.OrderedDictionary
 Set-Variable -Name ARR_KEY_FUNC -value 0 -Option Constant
 Set-Variable -Name ARR_KEY_HIERARCHY -value 1 -Option Constant
-function addStack([System.Collections.Specialized.OrderedDictionary]$o_stack, [String]$i_stack_key, [String]$i_value_key) {
+function addDic([System.Collections.Specialized.OrderedDictionary]$o_stack, [String]$i_stack_key, [String]$i_value_key) {
     if ($o_stack.Contains($i_stack_key)) {
         $local:valueArr = $o_stack[$i_stack_key]
     } else {
@@ -28,7 +28,7 @@ function addStack([System.Collections.Specialized.OrderedDictionary]$o_stack, [S
     $o_stack[$i_stack_key]=$valueArr
 }
 
-function filereadToStack([String]$i_file) {
+function filereadToDic([String]$i_file) {
     # objdumpファイルの読み込み→配列展開
     $key = ""
     Get-Content $i_file | Select-String -Pattern $KEY_REG,$CALL_FUNC | ForEach-Object {
@@ -36,7 +36,7 @@ function filereadToStack([String]$i_file) {
             #最後のセミコロン消す
             $key = $_.ToString().Substring(0, $_.ToString().Length - 1)
         } elseif($_.ToString() -match $CALL_FUNC){
-            addStack $stack $key $Matches[1]
+            addDic $dic $key $Matches[1]
         }
     }
 }
@@ -44,19 +44,19 @@ function filereadToStack([String]$i_file) {
 function printStack([Collections.ArrayList]$list, [Int]$hierarchy) {
     $list | ForEach-Object {
         ($HIERARCHY_STR * $hierarchy ) + $_
-        if ( $stack.Contains($_) ) {
-            printStack $stack[$_] ($hierarchy + 1)
+        if ( $dic.Contains($_) ) {
+            printStack $dic[$_] ($hierarchy + 1)
         }
     }
 }
 
 #ここからmain
 
-#ファイルを読み込んで$stackに展開
-filereadToStack $filePath
-#$stack | ForEach-Object {$_}
+#ファイルを読み込んで$dicに展開
+filereadToDic $filePath
+#$dic | ForEach-Object {$_}
 
-$stack.Keys | ForEach-Object {
+$dic.Keys | ForEach-Object {
     $_
-    printStack $stack[$_] 1
+    printStack $dic[$_] 1
 }
