@@ -9,9 +9,18 @@ namespace PrintFileLineProject
     public class CsvParser
     {
         public String fileName { get; private set; }
-        public int baseLine { get; private set; }
-        public int prevLine { get; private set; }
-        public int followLine { get; private set; }
+        int _baseLine;
+        public int baseLine {
+            get { return _baseLine; }
+            private set {
+                if (value < 1)
+                {
+                    _baseLine = 1;
+                    return;
+                }
+                _baseLine = value;
+            }
+        }
 
         private Char _separator;
 
@@ -24,15 +33,13 @@ namespace PrintFileLineProject
         {
             String[] splitedStr = csvLine.Split(_separator);
 
-            if (splitedStr.Length != 4)
+            if (splitedStr.Length != 2)
             {
-                throw new FormatException("csv format error.[fileName, baseLine, startLine, endLine]");
+                throw new FormatException("csv format error.[fileName, baseLine]");
             }
 
             fileName = splitedStr[0];
             baseLine = int.Parse(splitedStr[1]);
-            prevLine = int.Parse(splitedStr[2]);
-            followLine = int.Parse(splitedStr[3]);
         }
     }
 }

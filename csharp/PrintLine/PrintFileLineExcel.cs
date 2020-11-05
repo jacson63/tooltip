@@ -9,17 +9,28 @@ namespace PrintFileLineProject
     class PrintFileLineExcel : AbstractPrintFileLine
     {
         private const string separator = "\t";
+        private const string noneStr = "NONE" + separator;
 
-        public override void printformated(CsvParser parser, List<string> buf)
+        public override void printformated(CsvParser parser, List<string> buf, int startLine)
         {
+            if ( buf == null )
+            {
+                base.getWriterInstance().WriteLine(noneStr);
+                return;
+            }
+
             StringBuilder builder = new StringBuilder();
             builder.Append(parser.fileName);
             builder.Append(separator);
-            builder.Append(String.Format("({0})", parser.baseLine));
+            builder.Append(String.Format("{0}", parser.baseLine));
             builder.Append(separator);
-            builder.Append("\"");
 
-            int cnt = parser.prevLine;
+            if (buf.Count != 1)
+            {
+                builder.Append("\"");
+            }
+
+            int cnt = startLine;
             foreach (string line in buf)
             {
                 builder.Append(cnt);
@@ -29,8 +40,12 @@ namespace PrintFileLineProject
                 cnt++;
             }
 
-            builder.Append("\"");
-            base.fileWrite(builder.ToString());
+            if (buf.Count != 1)
+            {
+                builder.Append("\"");
+            }
+            //base.fileWrite(builder.ToString());
+            base.getWriterInstance().WriteLine(builder.ToString());
         }
     }
 }

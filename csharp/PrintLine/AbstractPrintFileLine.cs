@@ -8,9 +8,13 @@ namespace PrintFileLineProject
 {
     public abstract class AbstractPrintFileLine
     {
+        public int prevLineNum { set; get; }
+        public int followLineNum { set; get; }
         public string outputFile { set; get; }
-        CsvParser _parser = new CsvParser();
+
         protected string outputEncoding { get; set; }
+        CsvParser _parser = new CsvParser();
+        StreamWriter _writer = null;
 
         public AbstractPrintFileLine()
         {
@@ -24,31 +28,70 @@ namespace PrintFileLineProject
                 _parser.parse(csvLine);
                 printFileRange();
             }
+
+            //デストラクタでstream閉じるとエラーになるので、とりあえずここで閉じる
+            CloseStream();
         }
 
         private void printFileRange()
         {
-            List<string> buf = new List<string>();
-            int startLine = _parser.baseLine - _parser.prevLine;
-            int endLine = _parser.baseLine + _parser.followLine;
-            int endCount = endLine - startLine;
+            List<string> buf = null;
+            int startLine = getStartLine(_parser.baseLine, prevLineNum);
+            int endLine = _parser.baseLine + followLineNum;
+            int endCount = endLine - startLine + 1;
 
-            foreach (String line in File.ReadLines(_parser.fileName).Skip(startLine).Take(endCount))
+            if (!File.Exists(_parser.fileName))
+            {
+                //csv記載のファイルが存在しない
+                printformated(_parser, buf, startLine);
+                return;
+            }
+
+            buf = new List<string>();
+            foreach (String line in File.ReadLines(_parser.fileName).Skip(startLine - 1).Take(endCount))
             {
                 buf.Add(line);
             }
 
-            printformated(_parser, buf);
+            printformated(_parser, buf, startLine);
         }
 
-        public abstract void printformated(CsvParser parser, List<String> buf);
+        public abstract void printformated(CsvParser parser, List<String> buf, int startLine);
 
-        protected void fileWrite(String str)
+        protected StreamWriter getWriterInstance()
         {
-            using (StreamWriter writer = new StreamWriter(outputFile, true, System.Text.Encoding.GetEncoding(outputEncoding)))
+            if (_writer == null)
             {
-                writer.WriteLine(str);
+                _writer = new StreamWriter(outputFile, false, System.Text.Encoding.GetEncoding(outputEncoding));
+            }
+            return _writer;
+        }
+
+        private void CloseStream()
+        {
+            if (_writer != null)
+            {
+                _writer.Flush();
+                _writer.Dispose();
             }
         }
+
+        private int getStartLine(int baseLine, int prevLineNum)
+        {
+            if ( (baseLine - prevLineNum) < 1)
+            {
+                return 1;
+            }
+
+            return (baseLine - prevLineNum);
+        }
+
+        //protected void fileWrite(String str)
+        //{
+        //    using (StreamWriter writer = new StreamWriter(outputFile, true, System.Text.Encoding.GetEncoding(outputEncoding)))
+        //    {
+        //        writer.WriteLine(str);
+        //    }
+        //}
     }
 }
